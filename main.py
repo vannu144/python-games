@@ -15,11 +15,18 @@ clock = pygame.time.Clock()
 
 # ---------------- SOUND SYSTEM ----------------
 
-# Sound effects
-
 eat_sound = pygame.mixer.Sound("sounds/eat.wav")
 game_over_sound = pygame.mixer.Sound("sounds/game over.wav")
 click_sound = pygame.mixer.Sound("sounds/click.wav")
+
+# Volume settings
+
+music_volume = 0.3
+effects_volume = 0.5
+
+eat_sound.set_volume(effects_volume)
+game_over_sound.set_volume(effects_volume)
+click_sound.set_volume(effects_volume)
 
 # Music ended event
 
@@ -27,14 +34,13 @@ MUSIC_ENDED = pygame.USEREVENT + 1
 
 pygame.mixer.music.set_endevent(MUSIC_ENDED)
 
-# Keep track of the currently playing music
-
 current_music = "bg-3"
 
 
 # Start menu music immediately
 
 pygame.mixer.music.load("sounds/bg-3.wav")
+pygame.mixer.music.set_volume(music_volume)
 pygame.mixer.music.play(-1)
 
 
@@ -47,6 +53,7 @@ def play_menu_music():
     pygame.mixer.music.stop()
 
     pygame.mixer.music.load("sounds/bg-3.wav")
+    pygame.mixer.music.set_volume(music_volume)
     pygame.mixer.music.play(-1)
 
     current_music = "bg-3"
@@ -59,6 +66,7 @@ def play_start_music():
     pygame.mixer.music.stop()
 
     pygame.mixer.music.load("sounds/start.wav")
+    pygame.mixer.music.set_volume(music_volume)
     pygame.mixer.music.play()
 
     current_music = "start"
@@ -71,6 +79,7 @@ def play_bg2_music():
     pygame.mixer.music.stop()
 
     pygame.mixer.music.load("sounds/bg-2.wav")
+    pygame.mixer.music.set_volume(music_volume)
     pygame.mixer.music.play()
 
     current_music = "bg-2"
@@ -80,20 +89,18 @@ def play_next_game_music():
 
     global current_music
 
-    # If start or bg-1 finishes, play bg-2
-
     if current_music == "start" or current_music == "bg-1":
 
         pygame.mixer.music.load("sounds/bg-2.wav")
+        pygame.mixer.music.set_volume(music_volume)
         pygame.mixer.music.play()
 
         current_music = "bg-2"
 
-    # If bg-2 finishes, play bg-1
-
     elif current_music == "bg-2":
 
         pygame.mixer.music.load("sounds/bg-1.wav")
+        pygame.mixer.music.set_volume(music_volume)
         pygame.mixer.music.play()
 
         current_music = "bg-1"
@@ -143,10 +150,111 @@ play_button = pygame.Rect(275, 250, 250, 60)
 settings_button = pygame.Rect(275, 330, 250, 60)
 quit_button = pygame.Rect(275, 410, 250, 60)
 
-easy_button = pygame.Rect(100, 330, 170, 55)
-medium_button = pygame.Rect(315, 330, 170, 55)
-hard_button = pygame.Rect(530, 330, 170, 55)
-back_button = pygame.Rect(275, 440, 250, 60)
+easy_button = pygame.Rect(100, 420, 170, 55)
+medium_button = pygame.Rect(315, 420, 170, 55)
+hard_button = pygame.Rect(530, 420, 170, 55)
+
+back_button = pygame.Rect(275, 510, 250, 60)
+
+
+# ---------------- SOUND SLIDERS ----------------
+
+music_slider = pygame.Rect(250, 210, 300, 10)
+effects_slider = pygame.Rect(250, 290, 300, 10)
+
+
+# ---------------- SLIDER FUNCTIONS ----------------
+
+def update_music_slider(mouse_x):
+
+    global music_volume
+
+    music_volume = (mouse_x - music_slider.x) / music_slider.width
+
+    if music_volume < 0:
+        music_volume = 0
+
+    if music_volume > 1:
+        music_volume = 1
+
+    pygame.mixer.music.set_volume(music_volume)
+
+
+def update_effects_slider(mouse_x):
+
+    global effects_volume
+
+    effects_volume = (mouse_x - effects_slider.x) / effects_slider.width
+
+    if effects_volume < 0:
+        effects_volume = 0
+
+    if effects_volume > 1:
+        effects_volume = 1
+
+    eat_sound.set_volume(effects_volume)
+    game_over_sound.set_volume(effects_volume)
+    click_sound.set_volume(effects_volume)
+
+
+def draw_slider(text, slider_rect, volume):
+
+    label = button_font.render(text, True, WHITE)
+
+    main_display.blit(
+        label,
+        label.get_rect(center=(400, slider_rect.y - 35))
+    )
+
+    # Slider background
+
+    pygame.draw.rect(
+        main_display,
+        GRAY,
+        slider_rect
+    )
+
+    # Calculate knob position
+
+    knob_x = int(slider_rect.x + volume * slider_rect.width)
+
+    # Draw filled portion
+
+    filled_width = knob_x - slider_rect.x
+
+    filled_rect = pygame.Rect(
+        slider_rect.x,
+        slider_rect.y,
+        filled_width,
+        slider_rect.height
+    )
+
+    pygame.draw.rect(
+        main_display,
+        GREEN,
+        filled_rect
+    )
+
+    # Draw knob
+
+    pygame.draw.circle(
+        main_display,
+        GREEN,
+        (knob_x, slider_rect.centery),
+        12
+    )
+
+    # Display percentage
+
+    percentage = int(volume * 100)
+
+    volume_text = small_font.render(
+        str(percentage) + "%",
+        True,
+        WHITE
+    )
+
+    main_display.blit(volume_text, (570, slider_rect.y - 15))
 
 
 # ---------------- SNAKE ----------------
@@ -254,8 +362,26 @@ def settings_menu():
 
     main_display.blit(
         title,
-        title.get_rect(center=(400, 120))
+        title.get_rect(center=(400, 90))
     )
+
+    # Music volume slider
+
+    draw_slider(
+        "MUSIC VOLUME",
+        music_slider,
+        music_volume
+    )
+
+    # Sound effects slider
+
+    draw_slider(
+        "SOUND EFFECTS",
+        effects_slider,
+        effects_volume
+    )
+
+    # Difficulty
 
     difficulty_text = button_font.render(
         "DIFFICULTY: " + difficulty,
@@ -265,7 +391,7 @@ def settings_menu():
 
     main_display.blit(
         difficulty_text,
-        difficulty_text.get_rect(center=(400, 250))
+        difficulty_text.get_rect(center=(400, 365))
     )
 
     draw_button("EASY", easy_button)
@@ -286,7 +412,7 @@ while running:
 
     for event in pygame.event.get():
 
-        # Music transition event
+        # Music transitions
 
         if event.type == MUSIC_ENDED:
 
@@ -306,9 +432,41 @@ while running:
 
             if event.button == 1:
 
+                # SETTINGS
+
+                if game_state == SETTINGS:
+
+                    if music_slider.inflate(0, 25).collidepoint(event.pos):
+
+                        update_music_slider(event.pos[0])
+
+                    elif effects_slider.inflate(0, 25).collidepoint(event.pos):
+
+                        update_effects_slider(event.pos[0])
+
+                    elif easy_button.collidepoint(event.pos):
+
+                        click_sound.play()
+                        difficulty = "Easy"
+
+                    elif medium_button.collidepoint(event.pos):
+
+                        click_sound.play()
+                        difficulty = "Medium"
+
+                    elif hard_button.collidepoint(event.pos):
+
+                        click_sound.play()
+                        difficulty = "Hard"
+
+                    elif back_button.collidepoint(event.pos):
+
+                        click_sound.play()
+                        game_state = MENU
+
                 # MAIN MENU
 
-                if game_state == MENU:
+                elif game_state == MENU:
 
                     if play_button.collidepoint(event.pos):
 
@@ -334,35 +492,23 @@ while running:
 
                         running = False
 
-                # SETTINGS
+        # Drag sliders
 
-                elif game_state == SETTINGS:
+        if event.type == pygame.MOUSEMOTION:
 
-                    if easy_button.collidepoint(event.pos):
+            if game_state == SETTINGS:
 
-                        click_sound.play()
+                if event.buttons[0]:
 
-                        difficulty = "Easy"
+                    if music_slider.inflate(0, 25).collidepoint(event.pos):
 
-                    elif medium_button.collidepoint(event.pos):
+                        update_music_slider(event.pos[0])
 
-                        click_sound.play()
+                    elif effects_slider.inflate(0, 25).collidepoint(event.pos):
 
-                        difficulty = "Medium"
+                        update_effects_slider(event.pos[0])
 
-                    elif hard_button.collidepoint(event.pos):
-
-                        click_sound.play()
-
-                        difficulty = "Hard"
-
-                    elif back_button.collidepoint(event.pos):
-
-                        click_sound.play()
-
-                        game_state = MENU
-
-        # KEYBOARD EVENTS
+        # Keyboard events
 
         if event.type == pygame.KEYDOWN:
 
