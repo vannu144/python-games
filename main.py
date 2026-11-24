@@ -3,6 +3,7 @@ import random
 from sys import exit
 
 pygame.init()
+pygame.mixer.init()
 
 # ---------------- WINDOW ----------------
 
@@ -11,6 +12,93 @@ pygame.display.set_caption("Snake Game")
 
 clock = pygame.time.Clock()
 
+
+# ---------------- SOUND SYSTEM ----------------
+
+# Sound effects
+
+eat_sound = pygame.mixer.Sound("sounds/eat.wav")
+game_over_sound = pygame.mixer.Sound("sounds/game over.wav")
+click_sound = pygame.mixer.Sound("sounds/click.wav")
+
+# Music ended event
+
+MUSIC_ENDED = pygame.USEREVENT + 1
+
+pygame.mixer.music.set_endevent(MUSIC_ENDED)
+
+# Keep track of the currently playing music
+
+current_music = "bg-3"
+
+
+# Start menu music immediately
+
+pygame.mixer.music.load("sounds/bg-3.wav")
+pygame.mixer.music.play(-1)
+
+
+# ---------------- MUSIC FUNCTIONS ----------------
+
+def play_menu_music():
+
+    global current_music
+
+    pygame.mixer.music.stop()
+
+    pygame.mixer.music.load("sounds/bg-3.wav")
+    pygame.mixer.music.play(-1)
+
+    current_music = "bg-3"
+
+
+def play_start_music():
+
+    global current_music
+
+    pygame.mixer.music.stop()
+
+    pygame.mixer.music.load("sounds/start.wav")
+    pygame.mixer.music.play()
+
+    current_music = "start"
+
+
+def play_bg2_music():
+
+    global current_music
+
+    pygame.mixer.music.stop()
+
+    pygame.mixer.music.load("sounds/bg-2.wav")
+    pygame.mixer.music.play()
+
+    current_music = "bg-2"
+
+
+def play_next_game_music():
+
+    global current_music
+
+    # If start or bg-1 finishes, play bg-2
+
+    if current_music == "start" or current_music == "bg-1":
+
+        pygame.mixer.music.load("sounds/bg-2.wav")
+        pygame.mixer.music.play()
+
+        current_music = "bg-2"
+
+    # If bg-2 finishes, play bg-1
+
+    elif current_music == "bg-2":
+
+        pygame.mixer.music.load("sounds/bg-1.wav")
+        pygame.mixer.music.play()
+
+        current_music = "bg-1"
+
+
 # ---------------- GAME STATES ----------------
 
 MENU = "menu"
@@ -18,6 +106,7 @@ SETTINGS = "settings"
 PLAYING = "playing"
 
 game_state = MENU
+
 
 # ---------------- DIFFICULTY ----------------
 
@@ -29,12 +118,14 @@ speeds = {
     "Hard": 15
 }
 
+
 # ---------------- FONTS ----------------
 
 title_font = pygame.font.SysFont("consolas", 65, bold=True)
 button_font = pygame.font.SysFont("consolas", 30, bold=True)
 small_font = pygame.font.SysFont("consolas", 22, bold=True)
 score_font = pygame.font.SysFont("Fixedsys", 30, bold=True)
+
 
 # ---------------- COLORS ----------------
 
@@ -44,6 +135,7 @@ RED = (255, 0, 0)
 WHITE = (255, 255, 255)
 BLACK = (30, 30, 30)
 GRAY = (100, 100, 100)
+
 
 # ---------------- BUTTONS ----------------
 
@@ -55,6 +147,7 @@ easy_button = pygame.Rect(100, 330, 170, 55)
 medium_button = pygame.Rect(315, 330, 170, 55)
 hard_button = pygame.Rect(530, 330, 170, 55)
 back_button = pygame.Rect(275, 440, 250, 60)
+
 
 # ---------------- SNAKE ----------------
 
@@ -68,6 +161,7 @@ direction = (20, 0)
 
 score = 0
 game_over = False
+
 
 # ---------------- FOOD ----------------
 
@@ -85,6 +179,7 @@ def generate_food():
 
 
 food = generate_food()
+
 
 # ---------------- RESTART ----------------
 
@@ -191,8 +286,21 @@ while running:
 
     for event in pygame.event.get():
 
+        # Music transition event
+
+        if event.type == MUSIC_ENDED:
+
+            if game_state == PLAYING and not game_over:
+
+                play_next_game_music()
+
+        # Quit game
+
         if event.type == pygame.QUIT:
+
             running = False
+
+        # Mouse clicks
 
         if event.type == pygame.MOUSEBUTTONDOWN:
 
@@ -204,15 +312,25 @@ while running:
 
                     if play_button.collidepoint(event.pos):
 
+                        click_sound.play()
+
                         restart_game()
+
                         game_state = PLAYING
+
                         last_move_time = pygame.time.get_ticks()
 
+                        play_start_music()
+
                     elif settings_button.collidepoint(event.pos):
+
+                        click_sound.play()
 
                         game_state = SETTINGS
 
                     elif quit_button.collidepoint(event.pos):
+
+                        click_sound.play()
 
                         running = False
 
@@ -221,15 +339,27 @@ while running:
                 elif game_state == SETTINGS:
 
                     if easy_button.collidepoint(event.pos):
+
+                        click_sound.play()
+
                         difficulty = "Easy"
 
                     elif medium_button.collidepoint(event.pos):
+
+                        click_sound.play()
+
                         difficulty = "Medium"
 
                     elif hard_button.collidepoint(event.pos):
+
+                        click_sound.play()
+
                         difficulty = "Hard"
 
                     elif back_button.collidepoint(event.pos):
+
+                        click_sound.play()
+
                         game_state = MENU
 
         # KEYBOARD EVENTS
@@ -239,6 +369,7 @@ while running:
             if game_state == SETTINGS:
 
                 if event.key == pygame.K_ESCAPE:
+
                     game_state = MENU
 
             elif game_state == PLAYING:
@@ -246,28 +377,39 @@ while running:
                 if game_over:
 
                     if event.key == pygame.K_r:
+
                         restart_game()
+
                         last_move_time = pygame.time.get_ticks()
 
+                        play_bg2_music()
+
                     elif event.key == pygame.K_m:
+
                         game_state = MENU
+
+                        play_menu_music()
 
                 else:
 
                     if (event.key in (pygame.K_UP, pygame.K_w)
                             and direction != (0, 20)):
+
                         direction = (0, -20)
 
                     elif (event.key in (pygame.K_DOWN, pygame.K_s)
                             and direction != (0, -20)):
+
                         direction = (0, 20)
 
                     elif (event.key in (pygame.K_LEFT, pygame.K_a)
                             and direction != (20, 0)):
+
                         direction = (-20, 0)
 
                     elif (event.key in (pygame.K_RIGHT, pygame.K_d)
                             and direction != (-20, 0)):
+
                         direction = (20, 0)
 
     # ---------------- MENU DISPLAY ----------------
@@ -306,13 +448,20 @@ while running:
                 # Collision detection
 
                 if ate_food:
+
                     body_to_check = snake_body
-                
+
                 else:
+
                     body_to_check = snake_body[:-1]
-                    
+
                 if new_head in body_to_check:
+
                     game_over = True
+
+                    pygame.mixer.music.stop()
+
+                    game_over_sound.play()
 
                 else:
 
@@ -320,7 +469,10 @@ while running:
 
                     if ate_food:
 
+                        eat_sound.play()
+
                         score += 1
+
                         food = generate_food()
 
                     else:
