@@ -4,21 +4,59 @@ from sys import exit
 
 pygame.init()
 
-# Game window
+# ---------------- WINDOW ----------------
 
 main_display = pygame.display.set_mode((800, 600))
 pygame.display.set_caption("Snake Game")
 
 clock = pygame.time.Clock()
 
-# Colours
+# ---------------- GAME STATES ----------------
+
+MENU = "menu"
+SETTINGS = "settings"
+PLAYING = "playing"
+
+game_state = MENU
+
+# ---------------- DIFFICULTY ----------------
+
+difficulty = "Medium"
+
+speeds = {
+    "Easy": 5,
+    "Medium": 10,
+    "Hard": 15
+}
+
+# ---------------- FONTS ----------------
+
+title_font = pygame.font.SysFont("consolas", 65, bold=True)
+button_font = pygame.font.SysFont("consolas", 30, bold=True)
+small_font = pygame.font.SysFont("consolas", 22, bold=True)
+score_font = pygame.font.SysFont("Fixedsys", 30, bold=True)
+
+# ---------------- COLORS ----------------
 
 GREEN = (0, 255, 0)
+DARK_GREEN = (0, 100, 0)
 RED = (255, 0, 0)
 WHITE = (255, 255, 255)
 BLACK = (30, 30, 30)
+GRAY = (100, 100, 100)
 
-# Snake body
+# ---------------- BUTTONS ----------------
+
+play_button = pygame.Rect(275, 250, 250, 60)
+settings_button = pygame.Rect(275, 330, 250, 60)
+quit_button = pygame.Rect(275, 410, 250, 60)
+
+easy_button = pygame.Rect(100, 330, 170, 55)
+medium_button = pygame.Rect(315, 330, 170, 55)
+hard_button = pygame.Rect(530, 330, 170, 55)
+back_button = pygame.Rect(275, 440, 250, 60)
+
+# ---------------- SNAKE ----------------
 
 snake_body = [
     [100, 100],
@@ -26,14 +64,17 @@ snake_body = [
     [60, 100]
 ]
 
-# Initial direction
-
 direction = (20, 0)
 
-# Generate food
+score = 0
+game_over = False
+
+# ---------------- FOOD ----------------
 
 def generate_food():
+
     while True:
+
         food = [
             random.randrange(0, 800, 20),
             random.randrange(0, 600, 20)
@@ -44,12 +85,11 @@ def generate_food():
 
 
 food = generate_food()
-score = 0
 
-running = True
-game_over = False
+# ---------------- RESTART ----------------
 
 def restart_game():
+
     global snake_body, direction, food, score, game_over
 
     snake_body = [
@@ -59,120 +99,299 @@ def restart_game():
     ]
 
     direction = (20, 0)
+
     food = generate_food()
+
     score = 0
+
     game_over = False
+
+
+# ---------------- BUTTON FUNCTION ----------------
+
+def draw_button(text, rect):
+
+    mouse = pygame.mouse.get_pos()
+
+    if rect.collidepoint(mouse):
+        color = DARK_GREEN
+    else:
+        color = GRAY
+
+    pygame.draw.rect(
+        main_display,
+        color,
+        rect
+    )
+
+    text_surface = button_font.render(text, True, WHITE)
+
+    text_rect = text_surface.get_rect(center=rect.center)
+
+    main_display.blit(text_surface, text_rect)
+
+
+# ---------------- MAIN MENU ----------------
+
+def main_menu():
+
+    main_display.fill(BLACK)
+
+    title = title_font.render("SNAKE GAME", True, GREEN)
+
+    main_display.blit(
+        title,
+        title.get_rect(center=(400, 150))
+    )
+
+    draw_button("PLAY", play_button)
+    draw_button("SETTINGS", settings_button)
+    draw_button("QUIT", quit_button)
+
+
+# ---------------- SETTINGS MENU ----------------
+
+def settings_menu():
+
+    main_display.fill(BLACK)
+
+    title = title_font.render("SETTINGS", True, GREEN)
+
+    main_display.blit(
+        title,
+        title.get_rect(center=(400, 120))
+    )
+
+    difficulty_text = button_font.render(
+        "DIFFICULTY: " + difficulty,
+        True,
+        WHITE
+    )
+
+    main_display.blit(
+        difficulty_text,
+        difficulty_text.get_rect(center=(400, 250))
+    )
+
+    draw_button("EASY", easy_button)
+    draw_button("MEDIUM", medium_button)
+    draw_button("HARD", hard_button)
+    draw_button("BACK", back_button)
+
+
+# ---------------- GAME LOOP ----------------
+
+running = True
+
+last_move_time = pygame.time.get_ticks()
 
 while running:
 
-    # Event handling
+    # ---------------- EVENTS ----------------
 
     for event in pygame.event.get():
 
         if event.type == pygame.QUIT:
             running = False
 
-        # Keyboard controls
+        if event.type == pygame.MOUSEBUTTONDOWN:
+
+            if event.button == 1:
+
+                # MAIN MENU
+
+                if game_state == MENU:
+
+                    if play_button.collidepoint(event.pos):
+
+                        restart_game()
+                        game_state = PLAYING
+                        last_move_time = pygame.time.get_ticks()
+
+                    elif settings_button.collidepoint(event.pos):
+
+                        game_state = SETTINGS
+
+                    elif quit_button.collidepoint(event.pos):
+
+                        running = False
+
+                # SETTINGS
+
+                elif game_state == SETTINGS:
+
+                    if easy_button.collidepoint(event.pos):
+                        difficulty = "Easy"
+
+                    elif medium_button.collidepoint(event.pos):
+                        difficulty = "Medium"
+
+                    elif hard_button.collidepoint(event.pos):
+                        difficulty = "Hard"
+
+                    elif back_button.collidepoint(event.pos):
+                        game_state = MENU
+
+        # KEYBOARD EVENTS
 
         if event.type == pygame.KEYDOWN:
-            
-            if game_over and event.key == pygame.K_r:
-                restart_game()
 
-            elif (event.key in (pygame.K_UP, pygame.K_w)
-                    and direction != (0, 20)):
-                direction = (0, -20)
+            if game_state == SETTINGS:
 
-            elif (event.key in (pygame.K_DOWN, pygame.K_s)
-                    and direction != (0, -20)):
-                direction = (0, 20)
+                if event.key == pygame.K_ESCAPE:
+                    game_state = MENU
 
-            elif (event.key in (pygame.K_LEFT, pygame.K_a)
-                    and direction != (20, 0)):
-                direction = (-20, 0)
+            elif game_state == PLAYING:
 
-            elif (event.key in (pygame.K_RIGHT, pygame.K_d)
-                    and direction != (-20, 0)):
-                direction = (20, 0)
+                if game_over:
 
-    if not game_over:
+                    if event.key == pygame.K_r:
+                        restart_game()
+                        last_move_time = pygame.time.get_ticks()
 
-        # Calculate new head
+                    elif event.key == pygame.K_m:
+                        game_state = MENU
 
-        head_x = (snake_body[0][0] + direction[0]) % 800
-        head_y = (snake_body[0][1] + direction[1]) % 600
+                else:
 
-        new_head = [head_x, head_y]
+                    if (event.key in (pygame.K_UP, pygame.K_w)
+                            and direction != (0, 20)):
+                        direction = (0, -20)
 
-        # Check if food is eaten
+                    elif (event.key in (pygame.K_DOWN, pygame.K_s)
+                            and direction != (0, -20)):
+                        direction = (0, 20)
 
-        ate_food = new_head == food
+                    elif (event.key in (pygame.K_LEFT, pygame.K_a)
+                            and direction != (20, 0)):
+                        direction = (-20, 0)
 
-        # Self collision detection
+                    elif (event.key in (pygame.K_RIGHT, pygame.K_d)
+                            and direction != (-20, 0)):
+                        direction = (20, 0)
 
-        if new_head in (snake_body if ate_food else snake_body[:-1]):
-            game_over = True
+    # ---------------- MENU DISPLAY ----------------
 
-        else:
+    if game_state == MENU:
 
-            # Move snake
+        main_menu()
 
-            snake_body.insert(0, new_head)
+    elif game_state == SETTINGS:
 
-            if ate_food:
-                score += 1
-                food = generate_food()
+        settings_menu()
 
-            else:
-                snake_body.pop()
+    # ---------------- GAMEPLAY ----------------
 
-    # Background
+    elif game_state == PLAYING:
 
-    main_display.fill(BLACK)
+        if not game_over:
 
-    # Draw snake
+            current_time = pygame.time.get_ticks()
 
-    for segment in snake_body:
+            if current_time - last_move_time >= 1000 / speeds[difficulty]:
+
+                last_move_time = current_time
+
+                # Calculate new head
+
+                head_x = (snake_body[0][0] + direction[0]) % 800
+                head_y = (snake_body[0][1] + direction[1]) % 600
+
+                new_head = [head_x, head_y]
+
+                # Check food
+
+                ate_food = new_head == food
+
+                # Collision detection
+
+                if ate_food:
+                    body_to_check = snake_body
+                
+                else:
+                    body_to_check = snake_body[:-1]
+                    
+                if new_head in body_to_check:
+                    game_over = True
+
+                else:
+
+                    snake_body.insert(0, new_head)
+
+                    if ate_food:
+
+                        score += 1
+                        food = generate_food()
+
+                    else:
+
+                        snake_body.pop()
+
+        # Background
+
+        main_display.fill(BLACK)
+
+        # Draw snake
+
+        for segment in snake_body:
+
+            pygame.draw.rect(
+                main_display,
+                GREEN,
+                pygame.Rect(segment[0], segment[1], 20, 20)
+            )
+
+        # Draw food
+
         pygame.draw.rect(
             main_display,
-            GREEN,
-            pygame.Rect(segment[0], segment[1], 20, 20)
+            RED,
+            pygame.Rect(food[0], food[1], 20, 20)
         )
 
-    # Draw food
+        # Score
 
-    pygame.draw.rect(
-        main_display,
-        RED,
-        pygame.Rect(food[0], food[1], 20, 20)
-    )
+        score_text = score_font.render(
+            f"Score: {score}", True, WHITE
+        )
 
-    # Display score
+        main_display.blit(score_text, (10, 10))
 
-    font = pygame.font.SysFont("Fixedsys", 30, bold=True)
-    score_text = font.render(f"Score: {score}", True, WHITE)
-    main_display.blit(score_text, (10, 10))
+        # Game over
 
-    # Game over screen
+        if game_over:
 
-    if game_over:
-        font = pygame.font.Font(None, 60)
-        text = font.render("GAME OVER", True, RED)
+            text = title_font.render("GAME OVER", True, RED)
 
-        text_rect = text.get_rect(center=(400, 300))
-        main_display.blit(text, text_rect)
-        
-        # Restart instruction
+            main_display.blit(
+                text,
+                text.get_rect(center=(400, 250))
+            )
 
-        small_font = pygame.font.SysFont("consolas", 30, bold=True)
-        restart_text = small_font.render("Press R to Restart", True, WHITE)
+            restart_text = small_font.render(
+                "Press R to Restart", True, WHITE
+            )
 
-        restart_rect = restart_text.get_rect(center=(400, 330))
-        main_display.blit(restart_text, restart_rect)
+            main_display.blit(
+                restart_text,
+                restart_text.get_rect(center=(400, 320))
+            )
+
+            menu_text = small_font.render(
+                "Press M for Main Menu", True, WHITE
+            )
+
+            main_display.blit(
+                menu_text,
+                menu_text.get_rect(center=(400, 360))
+            )
+
+    # ---------------- UPDATE DISPLAY ----------------
 
     pygame.display.flip()
 
-    clock.tick(5)
+    clock.tick(60)
+
 
 pygame.quit()
 exit()
